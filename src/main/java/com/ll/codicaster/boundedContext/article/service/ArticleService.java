@@ -28,6 +28,7 @@ import com.ll.codicaster.boundedContext.article.form.ArticleCreateForm;
 import com.ll.codicaster.boundedContext.article.repository.ArticleRepository;
 import com.ll.codicaster.boundedContext.image.entity.Image;
 import com.ll.codicaster.boundedContext.image.repository.ImageRepository;
+import com.ll.codicaster.boundedContext.image.service.ImageService;
 import com.ll.codicaster.boundedContext.member.entity.Member;
 
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,14 @@ public class ArticleService {
 
 	private final ArticleRepository articleRepository;
 	private final ImageRepository imageRepository;
+	private final ImageService imageService;
+
+	@Value("${naver-cloud-platform.object-storage-url}")
+	private String OBJECT_STORAGE_URL;
+
+	@Value("${naver-cloud-platform.bucket-name}")
+	private String BUCKET_NAME;
+
 
 	private final Rq rq;
 	@Value("${file.upload-dir}")
@@ -80,22 +89,15 @@ public class ArticleService {
 			UUID uuid = UUID.randomUUID();
 			String fileName = uuid + "_" + imageFile.getOriginalFilename();
 
-			File directory = new File(uploadDir);
-			// 디렉토리가 존재하지 않으면 생성
-			if (!directory.exists()) {
-				directory.mkdirs(); // 상위 디렉토리까지 모두 생성
-			}
-
-			File saveFile = new File(uploadDir, fileName);
 			try {
-				imageFile.transferTo(saveFile);
+				imageService.uploadImage(imageFile);  // 네이버 오브젝트 스토리지에 이미지 업로드
 			} catch (Exception e) {
 				return RsData.of("F-4", "이미지 업로드에 실패하였습니다");
 			}
 
 			Image image = Image.builder()
 				.filename(fileName)
-				.filepath("/images/" + fileName)
+				.filepath(OBJECT_STORAGE_URL + "/" + BUCKET_NAME + "/" + fileName)  // 네이버 오브젝트 스토리지의 파일 경로
 				.article(article)
 				.build();
 
