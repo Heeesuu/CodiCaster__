@@ -18,6 +18,10 @@ import com.ll.codicaster.boundedContext.aws.s3.dto.AmazonS3ImageDto;
 import com.ll.codicaster.boundedContext.aws.s3.properties.AmazonS3Properties;
 import com.ll.codicaster.boundedContext.aws.s3.repository.AmazonS3Repository;
 import com.ll.codicaster.boundedContext.aws.s3.service.AmazonS3Service;
+
+
+// import com.ll.codicaster.boundedContext.aws.s3.dto.AmazonS3ImageDto;
+// import com.ll.codicaster.boundedContext.aws.s3.service.AmazonS3Service;
 import com.ll.codicaster.base.event.EventAfterWrite;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ll.codicaster.base.event.EventAfterLike;
+import com.ll.codicaster.base.event.EventBeforeDeleteArticle;
 import com.ll.codicaster.base.rq.Rq;
 import com.ll.codicaster.base.rsData.RsData;
 import com.ll.codicaster.boundedContext.article.entity.Article;
@@ -59,8 +64,8 @@ public class ArticleService {
 	@Value("${file.upload-dir}")
 	private String uploadDir;
 
-    public static Set<String> extractHashTagList(String content) {
-        Set<String> tagSet = new HashSet<>();
+	public static Set<String> extractHashTagList(String content) {
+		Set<String> tagSet = new HashSet<>();
 
 		Pattern pattern = Pattern.compile("#([ㄱ-ㅎ가-힣a-zA-Z0-9_]+)");
 		Matcher matcher = pattern.matcher(content);
@@ -149,7 +154,6 @@ public class ArticleService {
 			return RsData.of("F-2", "게시물이 존재하지 않습니다.");
 		}
 
-
 		if (!Objects.equals(article.getAuthor().getId(), member.getId())) {
 			return RsData.of("F-3", "수정 권한이 없습니다.");
 		}
@@ -164,27 +168,28 @@ public class ArticleService {
 		article.setContent(form.getContent());
 		article.setTagSet(newTagSet);
 
+		//클라우드 스토리지 이용
+		if (!imageFile.isEmpty()) {
+			try {
+				// 이미지 업로드 및 URL 정보 받아오기
+				AmazonS3ImageDto amazonS3ImageDto = amazonS3Service.imageUpload(imageFile,
+					UUID.randomUUID().toString());
 
-            //클라우드 스토리지 이용
-            if (!imageFile.isEmpty()) {
-                try {
-                    // 이미지 업로드 및 URL 정보 받아오기
-                    AmazonS3ImageDto amazonS3ImageDto = amazonS3Service.imageUpload(imageFile, UUID.randomUUID().toString());
+				// 기존 이미지가 있으면 DB에서 삭제
+				Image oldImage = article.getImage();
+				if (oldImage != null) {
+					imageRepository.delete(oldImage);
+				}
 
-                    // 기존 이미지가 있으면 DB에서 삭제
-                    Image oldImage = article.getImage();
-                    if (oldImage != null) {
-                        imageRepository.delete(oldImage);
-                    }
+				// 새 이미지 정보를 설정하고 저장
+				Image image = Image.builder()
+					.filename(imageFile.getOriginalFilename())
+					.filepath(amazonS3ImageDto.getCdnUrl()) // CDN URL로 변경
+					.article(article)
+					.build();
 
-                    // 새 이미지 정보를 설정하고 저장
-                    Image image = Image.builder()
-                        .filename(imageFile.getOriginalFilename())
-                        .filepath(amazonS3ImageDto.getCdnUrl()) // CDN URL로 변경
-                        .article(article)
-                        .build();
+				image = imageRepository.save(image);
 
-                    image = imageRepository.save(image);
 
                     article.setImage(image);
                 } catch (Exception e) {
@@ -223,9 +228,14 @@ public class ArticleService {
 		amazonS3Repository.deleteObject(bucketName, objectName); // 사진 삭제
 
 
+
+
+		publisher.publishEvent(new EventBeforeDeleteArticle(this, article));
 		articleRepository.deleteById(id);
 		return RsData.of("S-1", "삭제되었습니다.");
 	}
+
+
 
 	//이게 1차 필터링.
 	//가질 수 있는 날짜랑 기본 거리로 우선 정렬. 메인페이지에 위치 호출 기능 가져오면 현 위치 기준으로 정렬
