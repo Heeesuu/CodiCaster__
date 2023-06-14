@@ -1,4 +1,5 @@
 package com.ll.codicaster.boundedContext.article.service;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ public class ArticleServiceTests {
 		ArticleCreateForm form = new ArticleCreateForm();
 		form.setTitle("테스트 제목");
 		form.setContent("테스트 내용");
-		MultipartFile imageFile = new MockMultipartFile("test.jpg", new byte[] {});
+		MultipartFile imageFile = new MockMultipartFile("test.jpg", new byte[]{});
 
 		when(articleRepository.save(any(Article.class))).thenReturn(new Article());
 		when(imageRepository.save(any(Image.class))).thenReturn(new Image());
@@ -92,7 +93,7 @@ public class ArticleServiceTests {
 		ArticleCreateForm form = new ArticleCreateForm();
 		form.setTitle("수정한 제목");
 		form.setContent("수정한 내용");
-		MultipartFile imageFile = new MockMultipartFile("test.jpg", new byte[] {});
+		MultipartFile imageFile = new MockMultipartFile("test.jpg", new byte[]{});
 
 		Member author = new Member();
 		Article existingArticle = Article.builder()
@@ -101,7 +102,6 @@ public class ArticleServiceTests {
 			.author(author)
 			.tagSet(new HashSet<>())
 			.build();
-
 
 		when(articleRepository.save(any(Article.class))).thenReturn(existingArticle);
 		when(articleRepository.findById(articleId)).thenReturn(Optional.of(existingArticle));

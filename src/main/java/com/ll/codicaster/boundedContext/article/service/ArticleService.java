@@ -228,8 +228,6 @@ public class ArticleService {
 		amazonS3Repository.deleteObject(bucketName, objectName); // 사진 삭제
 
 
-
-
 		publisher.publishEvent(new EventBeforeDeleteArticle(this, article));
 		articleRepository.deleteById(id);
 		return RsData.of("S-1", "삭제되었습니다.");
