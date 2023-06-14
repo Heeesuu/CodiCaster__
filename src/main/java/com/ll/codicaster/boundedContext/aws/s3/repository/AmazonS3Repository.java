@@ -1,8 +1,10 @@
 package com.ll.codicaster.boundedContext.aws.s3.repository;
 
-import com.amazonaws.SdkClientException;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
+import com.ll.codicaster.boundedContext.aws.s3.properties.AmazonS3Properties;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,9 +18,9 @@ public class AmazonS3Repository {
 
     private final AmazonS3 amazonS3;
 
-    public PutObjectResult upload(String bucketName, String objectName, MultipartFile file, String contentType) {
+    private final AmazonS3Properties amazonS3Properties;
 
-		
+    public PutObjectResult upload(String bucketName, String objectName, MultipartFile file, String contentType) {
 
         try {
 
@@ -32,5 +34,11 @@ public class AmazonS3Repository {
             throw new RuntimeException(e);
         }
     }
+
+    public void deleteObject(String bucketName, String objectName) {
+        String fullObjectName = "i/" + objectName;
+        amazonS3.deleteObject(bucketName, fullObjectName);
+    }
+
 
 }

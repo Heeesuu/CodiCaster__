@@ -1,6 +1,9 @@
 package com.ll.codicaster.boundedContext.aws.s3.service;
 
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,4 +46,19 @@ public class AmazonS3Service {
             .build();
 
     }
+
+
+
+    public String extractObjectNameFromImageUrl(String imageUrl) {
+        try {
+            URL url = new URL(imageUrl);
+            String path = url.getPath();
+            String[] pathSegments = path.split("/");
+            String fileName = pathSegments[pathSegments.length - 1];
+            return fileName;
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("잘못된 이미지 URL입니다.", e);
+        }
+    }
 }
+
